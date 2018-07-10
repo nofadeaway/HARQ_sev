@@ -79,7 +79,7 @@ send()函数只能用于连接已经建立的情况，未建立连接时用sendt
 
 7.3在EnB端加了的lte-udp程序多加了一个socket 用一个端口 发送 伪的DCI 里面 其中之包涵了 harq进程号这一个信息
 
-目前端口号   数据6604   ACK5500 DCI 5505
+目前端口号   数据6604   ACK5500 DCI 7707
 
 
 7.4 注释掉了 rlc_um.cc 中所有 log->info
@@ -93,3 +93,11 @@ send()函数只能用于连接已经建立的情况，未建立连接时用sendt
     phr_procedure->generate_phr_on_ul_grant(&phr_value)  溢出为调用了此函数，在pdu_get()中，代码位于mux.cc
 
     mac.h 中的mac类包含了全部的这些 各色全都有
+
+7.10
+    linux定时 timerfd
+    添加了 pthread_barrier_t barrier; //于main函数
+    VS Code 代码快速格式化快捷键:     windows：Shift + Alt + F    Mac：Shift + Option + F   Ubuntu： Ctrl + Shift + I   
+
+    问题：多线程中，共用了同一个ACK数组 和 同一个 queue类中的队列，这显然不行。
+    计划：在每个lte-udp进程中单独才创建一个queue类队列，或者在lte-ue-main中创建   port_add 正好指明 下标

@@ -14,6 +14,8 @@ srslte::pdu_queue pdu_queue_test; //自己添加的PDU排队缓存,目前支持�
  
 int tun_fd;// option;全局变量--rlc写入ip时用
 
+pthread_barrier_t barrier; //屏障，用于一开始线程初始化
+
 /**************************************************************************
 * rlc-class
 **************************************************************************/
@@ -89,46 +91,111 @@ public:
 /**************************************************************************
 * thread_create----thread_wait
 **************************************************************************/
-void thread_create(void){
+// void thread_create(void){
 
-	int temp;
+// 	int temp;
+// 	memset(&id, 0, sizeof(id));
+
+// 	if ((temp = pthread_create(&id[0], NULL, lte_send_ip_3, NULL) != 0))
+// 		//参数：线程标识符指针 线程属性  线程运行函数起始地址  运行函数属性;创建成功返回 0
+// 		printf("Thread 1 lte_send_ip_3 fail to create!\n");
+// 	else
+// 		printf("Thread 1 lte_send_ip_3 created\n");
+	 
+// 	//FX 7.2 修改
+// 	// if( (temp = pthread_create(&id[1], NULL, lte_send_udp, NULL) != 0))
+// 	// 	printf("Thread 2 lte_send_udp fail to create!\n");
+// 	// else
+// 	// 	printf("Thread 2 lte_send_udp created!\n");
+
+// 	if( (temp = pthread_create(&id[2], NULL, lte_rece, NULL) != 0))
+// 		printf("Thread 3 lte_rece fail to create!\n");
+// 	else
+// 		printf("Thread 3 lte_rece created!\n");
+// }
+
+
+// void thread_wait()
+// {
+// 	if (id[0] != 0)
+// 	{
+// 		pthread_join(id[0], NULL); //等待线程结束，使用此函数对创建的线程资源回收
+// 		printf("Thread1 lte_send_ip_3 completed!\n");
+// 	}
+// 	if (id[1] != 0)
+// 	{
+// 		pthread_join(id[1], NULL);
+// 		printf("Thread2 lte_send_udp completed!\n");
+// 	}
+// 	if (id[2] != 0)
+// 	{
+// 		pthread_join(id[2], NULL);
+// 		printf("Thread3 lte_rece completed!\n");
+// 	}
+// }
+
+int thread_create(int user_n)
+{
+
+	int temp, temp_in[200];
+	unsigned int c_p_now = 0; //记录目前已经创建的线程数目
 	memset(&id, 0, sizeof(id));
 
-	if ((temp = pthread_create(&id[0], NULL, lte_send_ip_3, NULL) != 0))
+	if ((temp = pthread_create(&id[0], NULL, lte_send_ip_3, NULL) != 0)) //ip-pkt
 		//参数：线程标识符指针 线程属性  线程运行函数起始地址  运行函数属性;创建成功返回 0
 		printf("Thread 1 lte_send_ip_3 fail to create!\n");
 	else
-		printf("Thread 1 lte_send_ip_3 created\n");
-	 
-	//FX 7.2 修改
-	// if( (temp = pthread_create(&id[1], NULL, lte_send_udp, NULL) != 0))
-	// 	printf("Thread 2 lte_send_udp fail to create!\n");
-	// else
-	// 	printf("Thread 2 lte_send_udp created!\n");
+	{
+		++c_p_now;
+		printf("Thread 1 lte_send_ip_3 created! Now number of pthreads are %d!\n", c_p_now);
+	}
 
-	if( (temp = pthread_create(&id[2], NULL, lte_rece, NULL) != 0))
-		printf("Thread 3 lte_rece fail to create!\n");
-	else
-		printf("Thread 3 lte_rece created!\n");
+	// for (int i = 0; i < user_n; ++i)
+	// {
+	// 	temp_in[c_p_now] = i;
+	// 	if ((temp = pthread_create(&id[c_p_now], NULL, lte_send_udp, (void *)&(temp_in[c_p_now])) != 0)) //send-udp
+	// 		printf("Thread 2 lte_send_udp fail to create!\n");
+	// 	else
+	// 	{
+	// 		++c_p_now;
+	// 		printf("Dest:UE No.%d:Thread 2 lte_send_udp created! Now number of pthreads are %d!\n", i, c_p_now);
+	// 	}
+	// }
+
+	for (int i = 0; i < user_n; ++i)
+	{
+		temp_in[c_p_now] = i;
+		if ((temp = pthread_create(&id[c_p_now], NULL, lte_rece, (void *)&(temp_in[c_p_now])) != 0))
+			printf("Thread 3 lte_rece fail to create!\n");
+		else
+		{
+			++c_p_now;
+			printf("UE No.%d:Thread 3 lte_rece created! Now number of pthreads are %d!\n", i, c_p_now);
+		}
+	}
+	return c_p_now;
 }
 
-
-void thread_wait()
+void thread_wait(unsigned int now, int user_n)
 {
-	if (id[0] != 0)
+	for (int i = 0; i < now; ++i)
 	{
-		pthread_join(id[0], NULL); //等待线程结束，使用此函数对创建的线程资源回收
-		printf("Thread1 lte_send_ip_3 completed!\n");
-	}
-	if (id[1] != 0)
-	{
-		pthread_join(id[1], NULL);
-		printf("Thread2 lte_send_udp completed!\n");
-	}
-	if (id[2] != 0)
-	{
-		pthread_join(id[2], NULL);
-		printf("Thread3 lte_rece completed!\n");
+		if (id[i] != 0)
+		{
+			pthread_join(id[i], NULL); //等待线程结束，使用此函数对创建的线程资源回收
+			if (i < 1)
+			{
+				printf("Thread1 lte_send_ip_3 completed!\n");
+			}
+			if ((i > 0) && (i < (user_n + 1)))
+			{
+				printf("Thread2 lte_send_udp completed!\n");
+			}
+			if (i >= (user_n + 1))
+			{
+				printf("Thread3 lte_rece completed!\n");
+			}
+		}
 	}
 }
 
@@ -221,10 +288,23 @@ int main(void)
 
 	mac_demux_test.init(&phy_interface_mac_test, &rlc_test, &log1);//,&timers_test);
  
+	// printf("Main fuction,creating thread...\n");
+	// thread_create();
+	// printf("Main fuction, waiting for the pthread end!\n");
+	// thread_wait();
+	// return (0);
+
+	int user_n = 4, err = -1;								  //用户数目
+	unsigned int count_barrier = user_n  + 1, pth_now = 0; //用户数为n，n个udp(UE目前没有这个)，n个recv，1个ip-pkt，1个main，NONONO，主线程不需要等待
+	err = pthread_barrier_init(&barrier, NULL, count_barrier);
+	if (err == 0)
+		printf("Barrier init succeed!\n");
 	printf("Main fuction,creating thread...\n");
-	thread_create();
+	pth_now = thread_create(user_n);
+	printf("Main: Now %d pthread runs!\n", pth_now);
+	pthread_barrier_wait(&barrier);
 	printf("Main fuction, waiting for the pthread end!\n");
-	thread_wait();
+	thread_wait(pth_now, user_n);
 	return (0);
 }
 

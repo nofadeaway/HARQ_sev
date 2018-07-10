@@ -15,12 +15,27 @@ extern mux ue_mux_test;
 extern srslte::pdu_queue pdu_queue_test;   //5.28
 //bool ACK[8]={false,false,false,false,false,false,false,false};
 
+extern pthread_barrier_t barrier;
+
 void* lte_send_udp(void *ptr) {
 
-	printf("enter--lte_send_udp\n");
+    int port_add = 0;  //FX:7.10
+    if(ptr!=NULL)
+	{
+		port_add = *((int*)ptr);
+		printf("UDP:send The port offset is %d\n",port_add);
+	}
+	else
+	{
+		printf("UDP:No port offset inport.\n");
+	}
+
+
+	//printf("enter--lte_send_udp\n");
 	usleep(5000);
 
 	int port = atoi("6604");
+	port = port + port_add;
 	//create socket
 	int st = socket(AF_INET, SOCK_DGRAM, 0);   //int socket( int af, int type, int protocol); 使用UDP则第二个参数为（SOCK_DGRAM）
 	if (st == -1)
@@ -49,6 +64,7 @@ void* lte_send_udp(void *ptr) {
 
     //7.3begin{发送DCI}
     int port_a = atoi("7707");    //发送DCI端口
+	port_a =port_a +port_add;
 	//create socket
 	int st_a = socket(AF_INET, SOCK_DGRAM, 0);
 	if (st_a == -1)
@@ -62,8 +78,10 @@ void* lte_send_udp(void *ptr) {
 	addr_a.sin_port = htons(port_a);
 	addr_a.sin_addr.s_addr = inet_addr("10.129.4.106");//目的实际地址
 	//7.3end{发送DCI}
-	sleep(1);
-    
+	//sleep(1);
+    pthread_barrier_wait(&barrier);
+
+
 	while (1) {
 		
 		memset(payload_test, 0, SEND_SIZE*sizeof(uint8_t));
@@ -122,7 +140,7 @@ void* lte_send_udp(void *ptr) {
 		   {printf("DCI:sendto failed ! error message :%s\n", strerror(errno));}
 		   else
 		   {
-			   printf("UDP trans begin! NO.%d:DCI succeed!\n",pid_now);
+			   printf("Thread_UDP No.%d: UDP trans begin! NO.%d:DCI succeed!\n",port_add,pid_now);
 		   }
 		//end
 	   

@@ -7,7 +7,7 @@ using namespace srsue;
  
 extern demux mac_demux_test;
 extern mac_dummy_timers timers_test;
-
+extern pthread_barrier_t barrier;
 //用于发送ACK
 struct A_ACK
 {
@@ -24,7 +24,18 @@ struct D_DCI
 
 void* lte_rece(void *ptr) {
 
-	printf("enter--lte_rece\n");
+    
+	int port_add = 0;
+	if (ptr != NULL)
+	{
+		port_add = *((int *)ptr);
+		printf("Recv:send The port offset is %d\n", port_add);
+	}
+	else
+	{
+		printf("Recv:No port offset inport.\n");
+	}
+	//printf("enter--lte_rece\n");
 
 	int st = socket(AF_INET, SOCK_DGRAM, 0);
 	if (st == -1) {
@@ -32,6 +43,7 @@ void* lte_rece(void *ptr) {
 		exit(1);
 	}
 	int port = atoi("6604");
+	port = port + port_add;
 	 
 	struct sockaddr_in addr;
 	 
@@ -57,6 +69,7 @@ void* lte_rece(void *ptr) {
 		exit(1);
 	}
 	int port_DCI = atoi("7707");
+	port_DCI = port_DCI + port_add;
 	 
 	struct sockaddr_in addr_DCI;
 	socklen_t addrlen_DCI = sizeof(addr_DCI);
@@ -76,6 +89,7 @@ void* lte_rece(void *ptr) {
 	/*********************************/
     //begin{FX:发送ACK}
 	int port_a = atoi("5500");    //发送ACK端口
+	port_a = port_a + port_add;
 	//create socket
 	int st_a = socket(AF_INET, SOCK_DGRAM, 0);
 	if (st_a == -1)
@@ -94,7 +108,7 @@ void* lte_rece(void *ptr) {
 	// 	exit(1);
 	// }
 	/********************************/
-	
+	pthread_barrier_wait(&barrier);
 	 
 	while (1) {
 
@@ -111,13 +125,13 @@ void* lte_rece(void *ptr) {
 		memset(temp_DCI,0,sizeof(temp_DCI));
         if (recvfrom(st_DCI, temp_DCI, sizeof(D_DCI), 0, (struct sockaddr *)&addr_DCI_1, &addrlen_DCI_1) == -1) {
 
-			printf("DCI:recvfrom failed ! error message : %s\n", strerror(errno));
+			printf("Thread No.%d: UE No.%d: DCI:recvfrom failed ! error message : %s\n",port_add,port_add, strerror(errno));
 			
 		}
 		else{
 			memcpy(&dci,temp_DCI,sizeof(D_DCI));
 			printf("**************************************************\n");
-			printf("DCI recv succeed!The next PDU belongs to NO.%d.\n",dci.N_pid_now);
+			printf("Thread No.%d: UE No.%d:DCI recv succeed!The next PDU belongs to NO.%d.\n",port_add,port_add,dci.N_pid_now);
 		}
 
 		if (recvfrom(st, rece_payload[k], rece_size, 0, (struct sockaddr *)&client_addr, &addrlen) == -1) {
@@ -128,7 +142,7 @@ void* lte_rece(void *ptr) {
 		else {
 			//MAC->RLC->IP 第二个参数有误,先固定与接收端一致,但是貌似不影响解包,丢弃了
 			mac_demux_test.process_pdu(rece_payload[k], rece_size);
-            printf("lte-Rece:PDU received!\n");
+            printf("Thread No.%d: lte-Rece:PDU received!\n",port_add);
 			//FX   发送ACK
 		   char temp[100];
 		   A_ACK ack_reply;
@@ -139,10 +153,10 @@ void* lte_rece(void *ptr) {
 		   memset(temp,0,sizeof(temp));
 		   memcpy(temp,&ack_reply,sizeof(ack_reply));
            if(sendto(st_a,temp,sizeof(ack_reply),0,(struct sockaddr *) &addr_a,sizeof(addr_a))==-1)
-		   {printf("ACK:sendto failed ! error message :%s\n", strerror(errno));}
+		   {printf("Thread No.%d: UE No.%d: ACK:sendto failed ! error message :%s\n",port_add,port_add, strerror(errno));}
 		   else
 		   {
-			   printf("NO.%d:ACK sending succeed!\n",ack_reply.ACK_pid);
+			   printf("(Thread No.%d: UE No.%d): NO.%d:ACK sending succeed!\n",port_add,port_add,ack_reply.ACK_pid);
 			   printf("************************************\n");
 		   }
 		   //end
