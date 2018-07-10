@@ -29,8 +29,8 @@ void* lte_send_udp(void *ptr) {
 	{
 		printf("UDP:No port offset inport.\n");
 	}
-
-
+    
+    
 	//printf("enter--lte_send_udp\n");
 	usleep(5000);
 
