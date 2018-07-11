@@ -101,3 +101,7 @@ send()函数只能用于连接已经建立的情况，未建立连接时用sendt
 
     问题：多线程中，共用了同一个ACK数组 和 同一个 queue类中的队列，这显然不行。
     计划：在每个lte-udp进程中单独才创建一个queue类队列，或者在lte-ue-main中创建   port_add 正好指明 下标
+
+7.11
+    phch_worker.cc: phy->mac->tb_decoded(dl_ack, dl_mac_grant.rnti_type, dl_mac_grant.pid);
+    其中 phy 为 class phch_worker 中phch_common    *phy;
