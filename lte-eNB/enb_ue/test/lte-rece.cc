@@ -10,6 +10,8 @@ extern mac_dummy_timers timers_test;
 //extern bool ACK[8];
 extern bool ACK[];
 
+extern eNB_ACK I_ACK[];
+
 // struct A_ACK
 // {
 // 	uint32_t ACK_pid;

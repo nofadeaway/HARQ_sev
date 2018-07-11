@@ -69,5 +69,9 @@ struct A_ACK
 	bool ack_0;
 };
 
+struct eNB_ACK 
+{
+	bool ack[8]={false, false, false, false, false, false, false, false};
+};
 
 #endif
