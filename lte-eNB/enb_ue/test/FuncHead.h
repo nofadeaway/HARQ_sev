@@ -22,6 +22,8 @@
 #include <linux/if_tun.h>
 #include <fcntl.h>
 
+#include "FX_MAC.h"
+
 #include "../hdr/common/log_stdout.h"
 #include "../hdr/common/interfaces.h"
 #include "../hdr/upper/rlc_um.h"
@@ -73,5 +75,7 @@ struct eNB_ACK
 {
 	bool ack[8]={false, false, false, false, false, false, false, false};
 };
+
+
 
 #endif
